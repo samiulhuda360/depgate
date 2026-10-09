@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "depgate"
+version = "1.0.0"
+description = "Auto-merge gate for Dependabot and Renovate pull requests: reads the release notes, checks how your code uses the package, and decides auto-merge, review or hold with Jev."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["httpx>=0.27", "PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.10", "types-PyYAML"]
+
+[project.scripts]
+depgate = "depgate.cli:main"
+
+[tool.setuptools]
+packages = ["depgate", "depgate.backends"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py311"
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "A", "C4", "SIM", "RUF", "PL"]
+ignore = ["E501", "S101", "RUF001", "RUF002", "RUF003", "PLR0913", "PLR2004", "PLR0912", "PLR0915", "PLR0911", "PLR0914", "PLR0917", "PLC0415", "S311"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "BLE", "SLF001", "PLC0415", "S105", "S106"]
+"depgate/cli.py" = ["T201"]
+"scripts/*" = ["T201", "S603"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+disallow_any_generics = false
+warn_return_any = false
+exclude = ["tests/", "build/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
