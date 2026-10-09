@@ -1,0 +1,38 @@
+# .github/depgate.yml: every key is optional; these are the defaults unless noted.
+backend: auto              # jev when TYPESAFE_API_KEY is set, otherwise the semver rules
+dry_run: false             # true: decide and comment in the job log, change nothing
+
+auto_merge:
+  enabled: true
+  min_confidence: 0.8      # Jev's decision confidence needed to merge without a person
+  max_risk: 1              # upgrade risk 0-3
+  allow_major: false       # never auto-merge a major bump
+  require_ci: true         # CI must be green
+  approve: true            # leave an approving review (needs "Allow GitHub Actions to approve pull requests")
+  merge_method: SQUASH     # MERGE, SQUASH or REBASE
+  ignore: []               # packages that always need a person, e.g. [typescript, django]
+
+triage_confidence: 0.5     # below this on any routing answer, label depgate:needs-human
+
+reviewers: ["@your-org/platform"]           # requested when an update is not auto-merged (example value)
+security_reviewers: ["@your-org/security"]  # added for security fixes (example value)
+
+labels:
+  auto_merge: depgate:auto-merge
+  review: depgate:review
+  hold: depgate:hold
+  needs_human: depgate:needs-human
+  security: security-update
+  priority: priority:high
+  breaking: breaking-change
+  runtime: runtime-change
+
+fail_check_on_hold: false  # true: the depgate status fails on hold, so branch protection blocks the merge
+comment: true
+
+notify:
+  events: [hold, security] # or [all]
+  slack_webhook_env: DEPGATE_SLACK_WEBHOOK
+  teams_webhook_env: DEPGATE_TEAMS_WEBHOOK
+
+audit_log: .depgate/audit.jsonl

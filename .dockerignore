@@ -1,0 +1,8 @@
+.git
+eval
+docs
+tests
+fixtures
+examples
+**/__pycache__
+.depgate

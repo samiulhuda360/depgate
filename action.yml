@@ -1,0 +1,59 @@
+name: depgate
+description: Auto-merge gate for Dependabot and Renovate pull requests. Reads the release notes, checks how your code uses the package and decides auto-merge, review or hold with Jev.
+author: Samiul Huda
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  typesafe-api-key:
+    description: TypeSafe AI API key for Jev. Without it depgate falls back to the semver rules.
+    required: false
+    default: ""
+  github-token:
+    description: Token used to read the pull request and to label, comment, approve and enable auto-merge.
+    required: false
+    default: ${{ github.token }}
+  config:
+    description: Path to the policy file.
+    required: false
+    default: .github/depgate.yml
+  dry-run:
+    description: "true to decide and comment in the job log only, without touching the pull request."
+    required: false
+    default: "false"
+  backend:
+    description: "Override the backend from the policy file: jev, llm, rules or auto."
+    required: false
+    default: ""
+
+outputs:
+  action:
+    description: auto_merge, merge_after_review or hold
+    value: ${{ steps.gate.outputs.action }}
+  risk:
+    description: Upgrade risk from 0 to 3
+    value: ${{ steps.gate.outputs.risk }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install depgate
+      shell: bash
+      run: python -m pip install --quiet "${{ github.action_path }}"
+    - name: Judge the update
+      id: gate
+      shell: bash
+      env:
+        TYPESAFE_API_KEY: ${{ inputs.typesafe-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        DEPGATE_BACKEND: ${{ inputs.backend }}
+        DEPGATE_CONFIG: ${{ inputs.config }}
+        DEPGATE_DRY_RUN: ${{ inputs.dry-run }}
+      run: |
+        args=(action --config "$DEPGATE_CONFIG")
+        if [ "$DEPGATE_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+        depgate "${args[@]}"

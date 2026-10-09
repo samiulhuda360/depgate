@@ -1,0 +1,9 @@
+# depgate's policy for its own dependency updates.
+auto_merge:
+  min_confidence: 0.8
+  max_risk: 1
+  allow_major: false
+labels:
+  hold: depgate:hold
+notify:
+  events: [hold, security]

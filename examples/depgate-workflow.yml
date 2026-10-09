@@ -1,0 +1,27 @@
+# .github/workflows/depgate.yml
+# Runs after your CI workflow finishes on a Dependabot or Renovate branch, so the CI result is known.
+# workflow_run executes the workflow file from the default branch: no code from the update PR is run here.
+name: depgate
+
+on:
+  workflow_run:
+    workflows: ["CI"]          # the name of your test workflow
+    types: [completed]
+
+permissions:
+  contents: write              # enable auto-merge
+  pull-requests: write         # labels, comment, review, approval
+  statuses: write              # the depgate commit status
+  checks: read                 # read the CI result
+
+jobs:
+  gate:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      contains(fromJSON('["dependabot[bot]", "renovate[bot]"]'), github.event.workflow_run.actor.login)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4   # default branch: depgate greps it for how you use the package
+      - uses: samiulhuda360/depgate@v1
+        with:
+          typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
