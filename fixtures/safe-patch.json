@@ -1,0 +1,23 @@
+{
+ "id": "npm:axios:1.1.1->1.1.2",
+ "ecosystem": "npm",
+ "package": "axios",
+ "source_repo": "axios/axios",
+ "from_version": "1.1.1",
+ "to_version": "1.1.2",
+ "jump": "patch",
+ "release_notes": "## v1.1.2\n### Fixed\r\n\r\n- Fixed broken exports for UMD builds.\r\n\r\n### Contributors to this release\r\n\r\n- [Jason Saayman](https://github.com/jasonsaayman)\n",
+ "release_urls": [
+  "https://github.com/axios/axios/releases/tag/v1.1.2"
+ ],
+ "advisories": [],
+ "ci_status": "success",
+ "title": "Bump axios from 1.1.1 to 1.1.2",
+ "repo": "example/orders-api",
+ "number": 41,
+ "url": "https://github.com/example/orders-api/pull/41",
+ "author": "dependabot[bot]",
+ "repo_files": {
+  "src/api/weather.js": "import axios from 'axios';\n\nconst http = axios.create({ baseURL: process.env.WEATHER_API_URL, timeout: 3000 });\n\nexport async function currentConditions(city) {\n  const { data } = await http.get('/current', { params: { city } });\n  return { tempC: data.temp_c, summary: data.summary };\n}\n\nexport async function forecast(city, days = 3) {\n  const { data } = await http.get('/forecast', { params: { city, days } });\n  return data.days;\n}\n"
+ }
+}

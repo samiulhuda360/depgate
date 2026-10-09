@@ -1,0 +1,30 @@
+{
+ "id": "npm:ws:8.20.0->8.20.1",
+ "ecosystem": "npm",
+ "package": "ws",
+ "source_repo": "websockets/ws",
+ "from_version": "8.20.0",
+ "to_version": "8.20.1",
+ "jump": "patch",
+ "release_notes": "## 8.20.1\n# Bug fixes\r\n\r\n- Fixed an uninitialized memory disclosure issue in `websocket.close()`\r\n  (c0327ec1).\r\n\r\nProviding a `TypedArray` (e.g. `Float32Array`) as the `reason` argument for\r\n`websocket.close()`, rather than the supported string or `Buffer` types, caused\r\nuninitialized memory to be disclosed to the remote peer.\r\n\r\n```js\r\nimport { deepStrictEqual } from 'node:assert';\r\nimport { WebSocket, WebSocketServer } from 'ws';\r\n\r\nconst wss = new WebSocketServer(\r\n  { port: 0, skipUTF8Validation: true },\r\n  function () {\r\n    const { port } = wss.address();\r\n    const ws = new WebSocket(`ws://localhost:${port}`, {\r\n      skipUTF8Validation: true\r\n    });\r\n\r\n    ws.on('close', function (code, reason) {\r\n      deepStrictEqual(reason, Buffer.alloc(80));\r\n    });\r\n  }\r\n);\r\n\r\nwss.on('connection', function (ws) {\r\n  ws.close(1000, new Float32Array(20));\r\n});\r\n```\r\n\r\nThe issue was privately reported by [Nikita Skovoroda](https://github.com/ChALkeR).\n",
+ "release_urls": [
+  "https://github.com/websockets/ws/releases/tag/8.20.1"
+ ],
+ "advisories": [
+  {
+   "ghsa_id": "GHSA-58qx-3vcg-4xpx",
+   "summary": "ws: Uninitialized memory disclosure",
+   "severity": "medium",
+   "url": "https://github.com/advisories/GHSA-58qx-3vcg-4xpx"
+  }
+ ],
+ "ci_status": "success",
+ "title": "Bump ws from 8.20.0 to 8.20.1",
+ "repo": "example/orders-api",
+ "number": 42,
+ "url": "https://github.com/example/orders-api/pull/42",
+ "author": "dependabot[bot]",
+ "repo_files": {
+  "src/realtime/sessions.mjs": "import { WebSocketServer } from 'ws'\n\nconst wss = new WebSocketServer({ port: Number(process.env.WS_PORT || 8080) })\n\nwss.on('connection', (ws) => {\n  const timer = setTimeout(() => {\n    ws.close(1000, 'session expired')\n  }, 30 * 60 * 1000)\n\n  ws.on('close', () => clearTimeout(timer))\n  ws.on('message', (data) => ws.send(`ack:${data}`))\n})\n\nexport function shutdown () {\n  for (const ws of wss.clients) ws.close(1001, 'server shutting down')\n  wss.close()\n}\n"
+ }
+}

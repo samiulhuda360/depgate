@@ -1,0 +1,23 @@
+{
+ "id": "npm:undici:1.3.0->2.0.0",
+ "ecosystem": "npm",
+ "package": "undici",
+ "source_repo": "nodejs/undici",
+ "from_version": "1.3.0",
+ "to_version": "2.0.0",
+ "jump": "major",
+ "release_notes": "## v2.0.0\n### Breaking\r\n\r\n- `Client.dispatch` provides `headers` and `trailers` as an array of values (#337).\r\n- `Client.dispatch` adds a `onConnect` handler to handle abort once dispatched on socket.\r\n- `Client.dispatch` expects request body to be handled by caller until `onConnect` has been called.\r\n- Removed `signal` option in `Client.dispatch`.\r\n- Removed `requestTimeout` option in `new Client(url, opts)`. Provide `requestTimeout` as an option for each individual request (#383).\r\n- `Client.busy` behavior slightly changed (#366).\r\n- Rename `maxKeepAliveTimeout` option in `new Client(url, opts)` to `keepAliveMaxTimeout` (#359).\r\n- `requestTimeout` monitors time from request having been sent instead of from when it was queued (#343). \r\n- Error `body` on premature close (#336).\r\n\r\n#### Fixes\r\n\r\n- Unhandled exception (#372).\r\n- Destroy request body on invalid callback (#382).\r\n- Run `Client.upgrade` & `Client.connect` callbacks in async scope.\r\n- CONNECT calls onUpgrade multiple times (#348).\r\n- Don't reset socket until pipeline is empty (#334).\r\n- Allow throwing from handler (#335).\r\n\r\n#### Improvements\r\n\r\n- Reuse TLS sessions (#358).\r\n- ESM wrapper for named imports (#369).\r\n- Pool queued requests and dispatch on first available client.\r\n- Added `keepAlive` option (#357).\r\n- Try to avoid slow `net.isIP` (#330).\r\n- Various refactoring and performance improvements.\n",
+ "release_urls": [
+  "https://github.com/nodejs/undici/releases/tag/v2.0.0"
+ ],
+ "advisories": [],
+ "ci_status": "success",
+ "title": "Bump undici from 1.3.0 to 2.0.0",
+ "repo": "example/orders-api",
+ "number": 44,
+ "url": "https://github.com/example/orders-api/pull/44",
+ "author": "dependabot[bot]",
+ "repo_files": {
+  "src/http/pricing-client.js": "const { Client } = require('undici');\n\nconst client = new Client(process.env.PRICING_URL, {\n  requestTimeout: 5000,\n  maxKeepAliveTimeout: 30000\n});\n\nasync function getQuote(sku) {\n  const { statusCode, body } = await client.request({\n    path: `/quotes/${encodeURIComponent(sku)}`,\n    method: 'GET'\n  });\n  let data = '';\n  for await (const chunk of body) data += chunk;\n  if (statusCode !== 200) throw new Error(`pricing ${statusCode}`);\n  return JSON.parse(data);\n}\n\nmodule.exports = { getQuote };\n"
+ }
+}

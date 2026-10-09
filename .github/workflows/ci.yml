@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # CI never calls a model: the evaluation replays recorded responses from eval/cache/.
+      DEPGATE_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Type check
+        run: mypy .
+      - name: Tests
+        run: pytest
+      - name: Evaluation replay matches the committed results
+        run: |
+          depgate eval
+          git diff --exit-code eval/results.md
+      - name: Demo fixtures
+        run: |
+          for f in fixtures/*.json; do depgate check "$f" --backend jev --cache eval/cache --no-audit > /dev/null; done
