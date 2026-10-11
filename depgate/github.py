@@ -21,6 +21,13 @@ ENABLE_AUTO_MERGE = """mutation($id: ID!, $method: PullRequestMergeMethod!) {
 }"""
 
 
+def _error_message(resp: httpx.Response) -> str:
+    try:
+        return str(resp.json().get("message", ""))
+    except ValueError:
+        return ""
+
+
 class GitHub:
     def __init__(self, token: str | None = None, api_url: str | None = None, client: httpx.Client | None = None) -> None:
         self.api_url = (api_url or os.environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
@@ -105,8 +112,14 @@ class GitHub:
             )
             done.append("requested review from " + ", ".join(outcome.user_reviewers + outcome.team_reviewers))
         if outcome.approve:
-            self._req("POST", f"/repos/{repo}/pulls/{number}/reviews", json={"event": "APPROVE", "body": "Approved by depgate: low-risk update, CI green."})
-            done.append("approved the pull request")
+            try:
+                self._req("POST", f"/repos/{repo}/pulls/{number}/reviews", json={"event": "APPROVE", "body": "Approved by depgate: low-risk update, CI green."})
+                done.append("approved the pull request")
+            except httpx.HTTPStatusError as exc:
+                # GitHub refuses approvals from Actions unless "Allow GitHub Actions to create and approve pull
+                # requests" is on in the repository's Actions settings. Carry on: auto-merge and the status still apply.
+                reason = _error_message(exc.response) or f"HTTP {exc.response.status_code}"
+                done.append(f"could not approve: {reason}")
         if outcome.enable_auto_merge and node_id:
             resp = self.http.post(
                 self.graphql_url, headers=self.headers, json={"query": ENABLE_AUTO_MERGE, "variables": {"id": node_id, "method": cfg.auto_merge.merge_method}}

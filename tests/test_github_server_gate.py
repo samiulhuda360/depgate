@@ -22,12 +22,13 @@ from depgate.server import targets, verify_signature
 class FakeGitHubAPI:
     """Records every request and answers like the GitHub REST and GraphQL APIs."""
 
-    def __init__(self, labels: list[str] | None = None, comments: list[dict[str, Any]] | None = None) -> None:
+    def __init__(self, labels: list[str] | None = None, comments: list[dict[str, Any]] | None = None, refuse_approval: bool = False) -> None:
         self.calls: list[tuple[str, str, Any]] = []
         self.labels = labels or []
         self.comments = comments or []
         self.check_runs: list[dict[str, Any]] = []
         self.statuses: list[dict[str, Any]] = []
+        self.refuse_approval = refuse_approval
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content) if request.content else None
@@ -43,6 +44,8 @@ class FakeGitHubAPI:
             return httpx.Response(200, json={"statuses": self.statuses})
         if path == "/graphql":
             return httpx.Response(200, json={"data": {"enablePullRequestAutoMerge": {"clientMutationId": None}}})
+        if path.endswith("/reviews") and self.refuse_approval:
+            return httpx.Response(422, json={"message": "GitHub Actions is not permitted to approve pull requests."})
         return httpx.Response(200, json={})
 
 
@@ -63,6 +66,14 @@ def test_apply_auto_merge(update: Update) -> None:
     status = next(b for m, p, b in api.calls if p.startswith("/repos/example/orders-api/statuses/"))
     assert status["state"] == "success" and status["context"] == "depgate"
     assert "enabled auto-merge (squash)" in result.actions
+
+
+def test_refused_approval_does_not_stop_auto_merge(update: Update) -> None:
+    api = FakeGitHubAPI(refuse_approval=True)
+    result = run_gate(update, Config(audit_log=""), FakeBackend(make_decision()), github=client(api), dry_run=False)
+    assert "could not approve: GitHub Actions is not permitted to approve pull requests." in result.actions
+    assert "enabled auto-merge (squash)" in result.actions
+    assert any(p.startswith("/repos/example/orders-api/statuses/") for _, p, _ in api.calls)
 
 
 def test_comment_is_updated_not_duplicated(update: Update) -> None:
