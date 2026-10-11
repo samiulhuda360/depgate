@@ -35,6 +35,14 @@ def test_dependabot_title() -> None:
     assert scoped is not None and scoped.package == "@vitejs/plugin-react" and scoped.jump == "major"
 
 
+def test_dependabot_requirement_title() -> None:
+    b = parse_bump("Update pyyaml requirement from >=6.0 to >=6.0.3", branch="dependabot/pip/pyyaml-gte-6.0.3")
+    assert b is not None
+    assert (b.package, b.from_version, b.to_version, b.ecosystem, b.jump) == ("pyyaml", "6.0", "6.0.3", "pip", "patch")
+    ranged = parse_bump("Update mypy requirement from >=1.10,<2 to >=2.4.0,<3", branch="dependabot/pip/mypy-gte-2.4.0")
+    assert ranged is not None and (ranged.from_version, ranged.to_version, ranged.jump) == ("1.10", "2.4.0", "major")
+
+
 def test_renovate_title_and_table() -> None:
     body = "| Package | Change |\n|---|---|\n| [httpx](https://example.test) | `0.27.0` -> `0.28.1` |\n"
     b = parse_bump("chore(deps): update dependency httpx to v0.28.1", body, files=["requirements.txt"])

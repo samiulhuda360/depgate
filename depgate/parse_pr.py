@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from .versions import parse_version, semver_jump
 
 _DEPENDABOT = re.compile(r"(?i)\bbump\s+(?P<pkg>[@\w./-]+)\s+from\s+v?(?P<old>[\w.+-]+)\s+to\s+v?(?P<new>[\w.+-]+)")
+# Dependabot words a version-range update (pip, poetry, uv) as "Update pyyaml requirement from >=6.0 to >=6.0.3".
+_DEPENDABOT_REQUIREMENT = re.compile(r"(?i)\bupdate\s+(?P<pkg>[@\w./-]+)\s+requirement\s+from\s+(?P<old>\S+)\s+to\s+(?P<new>\S+)")
+_SPEC_VERSION = re.compile(r"\d[\w.+-]*")
 _RENOVATE = re.compile(r"(?i)\bupdate\s+(?:dependency\s+)?(?P<pkg>[@\w./-]+)\s+to\s+v?(?P<new>[\w.+-]+)")
 _RENOVATE_TABLE = re.compile(r"\|\s*\[?(?P<pkg>[@\w./-]+)\]?(?:\([^)]*\))?\s*\|.*?`[~^=<>]*v?(?P<old>\d[\w.+-]*)`\s*(?:->|→)\s*`[~^=<>]*v?(?P<new>\d[\w.+-]*)`")
 _GROUP = re.compile(r"(?i)\bbump the .+ group\b|\bupdate .+ (?:packages|monorepo)\b|\bwith \d+ updates\b")
@@ -40,6 +43,12 @@ def guess_ecosystem(branch: str, files: list[str], body: str) -> str:
     return "npm"
 
 
+def _spec_floor(spec: str) -> str:
+    """The first version number in a requirement specifier: ">=6.0,<7" -> "6.0"."""
+    m = _SPEC_VERSION.search(spec)
+    return m.group(0) if m else ""
+
+
 def parse_bump(title: str, body: str = "", branch: str = "", files: list[str] | None = None) -> ParsedBump | None:
     """Returns the single package bump the PR describes, or None for grouped or unrecognised PRs."""
     if _GROUP.search(title):
@@ -47,6 +56,9 @@ def parse_bump(title: str, body: str = "", branch: str = "", files: list[str] | 
     pkg = old = new = ""
     if m := _DEPENDABOT.search(title):
         pkg, old, new = m.group("pkg"), m.group("old"), m.group("new")
+    elif m := _DEPENDABOT_REQUIREMENT.search(title):
+        # A specifier such as ">=6.0,<7" is judged by the lowest version it now allows.
+        pkg, old, new = m.group("pkg"), _spec_floor(m.group("old")), _spec_floor(m.group("new"))
     elif m := _RENOVATE.search(title):
         pkg, new = m.group("pkg"), m.group("new")
         for row in _RENOVATE_TABLE.finditer(body):
