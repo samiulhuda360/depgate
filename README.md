@@ -50,37 +50,29 @@ renamed `requestTimeout` was held automatically, with the exact line of code it 
 
 ![Bar chart: safely and wrongly auto-merged updates for each gate](docs/screenshots/results-chart.png)
 
-*On the 146 real updates all three gates answered, the common "auto-merge every patch and minor update" rule merged
-10 updates that should have waited for a person (4 of them should have been held). depgate with Jev, and with an LLM,
-merged none of those.*
+*On 199 real updates, the common "auto-merge every patch and minor update" rule merged 15 updates that should have
+waited for a person (6 of them should have been held). depgate with Jev, and with an LLM, merged none of those.*
 
 ## Results in one table
 
 All numbers come from recorded real API calls on a labelled set of 199 real npm and PyPI updates (full report:
 [eval/results.md](eval/results.md); how they were labelled: [eval/LABELLING.md](eval/LABELLING.md)).
 
-The LLM backend (Gemini Flash-Lite) was measured on 146 of the 199 updates (its free-tier daily quota), so the
-three-way comparison uses those 146; the full 199 follow below it.
-
-| On the 146 updates all three answered | Semver rules | Jev | LLM (Gemini Flash-Lite) |
+| On all 199 updates | Semver rules | Jev | LLM (Gemini Flash-Lite) |
 |---|---|---|---|
-| Updates safely auto-merged | 66 (45%) | 35 (24%) | 52 (36%) |
-| **Wrongly auto-merged** (should have been reviewed or held) | **10** (4 should have been held) | **0** | **0** |
+| Updates safely auto-merged | 92 (46%) | 50 (25%) | 65 (33%) |
+| **Wrongly auto-merged** (should have been reviewed or held) | **15** (6 should have been held) | **0** | **0** |
 | Breaking changes in the notes found (recall) | 69% | 98% | 98% |
-| Decision accuracy (auto-merge / review / hold) | 57.5% | 91.1% | 89.0% |
-| Calibration, Brier score of the decision (lower is better) | 0.425 | 0.082 | 0.096 |
-| Time per update, typical / slowest 5% | none | 0.49 s / 0.69 s | 1.54 s / 15.5 s |
-| Cost per 1,000 updates | $0 | $0.061 | $0.196 |
-
-On all 199 updates: the semver rules auto-merged 92 safe updates and 15 wrong ones (6 that should have been held);
-depgate with Jev auto-merged 50 safe updates and no wrong ones, with 88.9% decision accuracy and 98.4%
-breaking-change recall.
+| Decision accuracy (auto-merge / review / hold) | 60.3% | 88.9% | 87.9% |
+| Calibration, Brier score of the decision (lower is better) | 0.397 | 0.088 | 0.111 |
+| Time per update, typical / slowest 5% | none | 0.48 s / 0.66 s | 1.68 s / 12.2 s |
+| Cost per 1,000 updates | $0 | $0.061 | $0.194 |
 
 What the numbers mean: the semver rule merges every patch and minor update, including the ones whose notes say
 something your code uses was removed. Jev and the LLM both kept wrong merges at zero at the default threshold. The LLM
 states higher confidence, so it clears the 0.8 bar more often, but its stated confidence is less honest: when it
-says 0.8 to 0.9 it is right 67% of the time, and at thresholds of 0.7 or lower it starts merging updates that needed
-a review. Jev stays at zero wrong merges at every threshold from 0.5 to 0.95 (48 safe merges at 0.5), and answers
+says 0.8 to 0.9 it is right 76% of the time, and at thresholds of 0.7 or lower it starts merging updates that needed
+a review. Jev stays at zero wrong merges at every threshold from 0.5 to 0.95 (68 safe merges at 0.5), and answers
 three times faster at a third of the cost.
 
 "Semver rules" is the baseline most teams use today: auto-merge patch and minor bumps when CI is green, hold majors.
@@ -323,26 +315,27 @@ CI results are simulated (80% green, 12% red, 8% running). Every update was labe
 - latency (p50, p95) and cost per 1,000 pull requests from real token counts;
 - automation at confidence thresholds from 0.5 to 0.95.
 
-Automation at different confidence thresholds (same policy, on the 146 updates all three answered):
+Automation at different confidence thresholds (same policy, all 199 updates):
 
 | Minimum decision confidence | Jev: safe / wrong | LLM: safe / wrong | Semver rules: safe / wrong |
 |---|---|---|---|
-| 0.50 | 48 / 0 | 62 / 2 | 66 / 10 |
-| 0.70 | 44 / 0 | 62 / 2 | 66 / 10 |
-| 0.80 (default) | 35 / 0 | 52 / 0 | 66 / 10 |
-| 0.90 | 26 / 0 | 43 / 0 | 66 / 10 |
-| 0.95 | 16 / 0 | 25 / 0 | 66 / 10 |
+| 0.50 | 68 / 0 | 84 / 2 | 92 / 15 |
+| 0.70 | 62 / 0 | 84 / 2 | 92 / 15 |
+| 0.80 (default) | 50 / 0 | 65 / 0 | 92 / 15 |
+| 0.90 | 36 / 0 | 56 / 0 | 92 / 15 |
+| 0.95 | 21 / 0 | 31 / 0 | 92 / 15 |
 
 Per question on the full 199 updates, Jev: decision accuracy 88.9% (macro-F1 0.884), risk level exact 88.9% (mean
 error 0.12 levels), `breaking_in_notes` F1 0.889, `breaking_affects_repo` F1 0.703, `security_fix` F1 0.989,
-`runtime_change` F1 0.706. The four yes/no answers pooled have a Brier score of 0.052. Per-question tables for all
-three backends, confusion matrices and reliability tables are in [eval/results.md](eval/results.md).
+`runtime_change` F1 0.706. The four yes/no answers pooled have a Brier score of 0.052. The LLM: decision accuracy
+87.9% (macro-F1 0.874), risk level exact 83.4%, `breaking_in_notes` F1 0.800, `breaking_affects_repo` F1 0.800,
+pooled Brier 0.069. Per-question tables for all three backends, confusion matrices and reliability tables are in [eval/results.md](eval/results.md).
 
 ![Terminal output of depgate eval](docs/screenshots/eval-run.png)
 
 *`depgate eval` replays the recorded answers and prints the headline numbers for each backend.*
 
-**Spend.** The evaluation and demos used 234 Jev calls (about 370,000 input tokens and 29,000 output tokens, about $0.015 in total) and 152 successful Gemini calls on the free tier (about 217,000 input and 22,000 output tokens).
+**Spend.** The evaluation and demos used 234 Jev calls (about 370,000 input tokens and 29,000 output tokens, about $0.015 in total) and 205 successful Gemini calls on the free tier (about 287,000 input and 30,000 output tokens).
 
 ## Tests and CI
 
